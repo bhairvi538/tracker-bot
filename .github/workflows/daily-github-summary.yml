@@ -13,14 +13,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Install Python dependencies
+        run: pip install requests
+
       - name: Fetch and Post GitHub Issue Summary
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
-          echo "Running daily GitHub summary..."
-
-          cat << 'EOF' > script.py
+          echo "Writing script..."
+          cat > summary_bot.py <<EOF
 import requests
 import os
 from datetime import datetime, timedelta
@@ -54,7 +56,7 @@ for repo in repos:
     closed_issues = [i for i in closed_issues if "pull_request" not in i]
 
     if open_issues or closed_issues:
-        summary_lines.append(f"\n### 📦 `{repo_name}`")
+        summary_lines.append(f"\\n### 📦 `{repo_name}`")
         if open_issues:
             summary_lines.append(f"🔓 **Open Issues** ({len(open_issues)}):")
             for issue in open_issues:
@@ -66,7 +68,8 @@ for repo in repos:
         summary_lines.append("")
 
 # Send to Discord
-requests.post(DISCORD_WEBHOOK, json={"content": "\n".join(summary_lines[:1900])})
+requests.post(DISCORD_WEBHOOK, json={"content": "\\n".join(summary_lines[:1900])})
 EOF
 
-          python3 script.py
+          echo "Running script..."
+          python3 summary_bot.py
