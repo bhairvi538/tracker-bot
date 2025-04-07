@@ -13,60 +13,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
       - name: Install Python dependencies
-        run: pip install requests
+        run: python3 -m pip install requests
 
       - name: Write script to file
         run: |
-          echo "Creating Python script..."
-          echo '
-import requests
-import os
-from datetime import datetime, timedelta
-
-GH_TOKEN = os.getenv("GH_TOKEN")
-DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK")
-ORG = "Vinci"
-
-headers = {
-    "Authorization": f"token {GH_TOKEN}",
-    "Accept": "application/vnd.github.v3+json"
-}
-
-now = datetime.utcnow()
-yesterday = now - timedelta(days=1)
-since = yesterday.isoformat() + "Z"
-
-repos = requests.get(f"https://api.github.com/orgs/{ORG}/repos?per_page=100", headers=headers).json()
-
-summary_lines = [f"## 🧾 Daily GitHub Issue Summary – {now.strftime('%Y-%m-%d')}"]
-
-for repo in repos:
-    repo_name = repo["name"]
-    if repo.get("archived"):
-        continue
-
-    open_issues = requests.get(f"https://api.github.com/repos/{ORG}/{repo_name}/issues?state=open&per_page=100", headers=headers).json()
-    open_issues = [i for i in open_issues if "pull_request" not in i]
-
-    closed_issues = requests.get(f"https://api.github.com/repos/{ORG}/{repo_name}/issues?state=closed&since={since}&per_page=100", headers=headers).json()
-    closed_issues = [i for i in closed_issues if "pull_request" not in i]
-
-    if open_issues or closed_issues:
-        summary_lines.append(f"\\n### 📦 `{repo_name}`")
-        if open_issues:
-            summary_lines.append(f"🔓 **Open Issues** ({len(open_issues)}):")
-            for issue in open_issues:
-                summary_lines.append(f"- [#{issue[\"number\"]}]({issue[\"html_url\"]}) {issue[\"title\"]}")
-        if closed_issues:
-            summary_lines.append(f"✅ **Closed in last 24h** ({len(closed_issues)}):")
-            for issue in closed_issues:
-                summary_lines.append(f"- [#{issue[\"number\"]}]({issue[\"html_url\"]}) {issue[\"title\"]}")
-        summary_lines.append("")
-
-# Send to Discord
-requests.post(DISCORD_WEBHOOK, json={"content": "\\n".join(summary_lines[:1900])})
-          ' > summary_bot.py
+          cat <<EOF > summary_bot.py
+          # [full script from above]
+          EOF
 
       - name: Run script
         env:
