@@ -18,8 +18,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
-          echo "Fetching issues..."
-          python3 <<EOF
+          echo "Running daily GitHub summary..."
+
+          cat << 'EOF' > script.py
 import requests
 import os
 from datetime import datetime, timedelta
@@ -64,10 +65,8 @@ for repo in repos:
                 summary_lines.append(f"- [#{issue['number']}]({issue['html_url']}) {issue['title']}")
         summary_lines.append("")
 
-# Build Discord message
-payload = {
-    "content": "\n".join(summary_lines[:1900])  # Discord limit
-}
-
-requests.post(DISCORD_WEBHOOK, json=payload)
+# Send to Discord
+requests.post(DISCORD_WEBHOOK, json={"content": "\n".join(summary_lines[:1900])})
 EOF
+
+          python3 script.py
