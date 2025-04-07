@@ -2,7 +2,7 @@ name: Daily GitHub Issue Summary
 
 on:
   schedule:
-    - cron: '0 7 * * *'  # Runs daily at 7:00 AM UTC (~12:30 PM IST)
+    - cron: '0 7 * * *'  # 12:30 PM IST daily
   workflow_dispatch:
 
 jobs:
@@ -16,13 +16,10 @@ jobs:
       - name: Install Python dependencies
         run: pip install requests
 
-      - name: Fetch and Post GitHub Issue Summary
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      - name: Write script to file
         run: |
-          echo "Writing script..."
-          cat > summary_bot.py <<EOF
+          echo "Creating Python script..."
+          echo '
 import requests
 import os
 from datetime import datetime, timedelta
@@ -60,16 +57,19 @@ for repo in repos:
         if open_issues:
             summary_lines.append(f"🔓 **Open Issues** ({len(open_issues)}):")
             for issue in open_issues:
-                summary_lines.append(f"- [#{issue['number']}]({issue['html_url']}) {issue['title']}")
+                summary_lines.append(f"- [#{issue[\"number\"]}]({issue[\"html_url\"]}) {issue[\"title\"]}")
         if closed_issues:
             summary_lines.append(f"✅ **Closed in last 24h** ({len(closed_issues)}):")
             for issue in closed_issues:
-                summary_lines.append(f"- [#{issue['number']}]({issue['html_url']}) {issue['title']}")
+                summary_lines.append(f"- [#{issue[\"number\"]}]({issue[\"html_url\"]}) {issue[\"title\"]}")
         summary_lines.append("")
 
 # Send to Discord
 requests.post(DISCORD_WEBHOOK, json={"content": "\\n".join(summary_lines[:1900])})
-EOF
+          ' > summary_bot.py
 
-          echo "Running script..."
-          python3 summary_bot.py
+      - name: Run script
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: python3 summary_bot.py
