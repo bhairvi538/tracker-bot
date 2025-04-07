@@ -2,7 +2,7 @@ name: Daily GitHub Issue Summary
 
 on:
   schedule:
-    - cron: '0 7 * * *'  # 12:30 PM IST daily
+    - cron: '0 7 * * *'  # Daily at 12:30 PM IST
   workflow_dispatch:
 
 jobs:
@@ -13,21 +13,58 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
+      - name: Install requests
+        run: pip install requests
 
-      - name: Install Python dependencies
-        run: python3 -m pip install requests
-
-      - name: Write script to file
+      - name: Create Python script
         run: |
-          cat <<EOF > summary_bot.py
-          # [full script from above]
-          EOF
+          echo "import requests" >> summary_bot.py
+          echo "import os" >> summary_bot.py
+          echo "from datetime import datetime, timedelta" >> summary_bot.py
+          echo "" >> summary_bot.py
+          echo "GH_TOKEN = os.getenv('GH_TOKEN')" >> summary_bot.py
+          echo "DISCORD_WEBHOOK = os.getenv('DISCORD_WEBHOOK')" >> summary_bot.py
+          echo "ORG = 'Vinci'" >> summary_bot.py
+          echo "" >> summary_bot.py
+          echo "headers = {" >> summary_bot.py
+          echo "    'Authorization': f'token {GH_TOKEN}'," >> summary_bot.py
+          echo "    'Accept': 'application/vnd.github.v3+json'" >> summary_bot.py
+          echo "}" >> summary_bot.py
+          echo "" >> summary_bot.py
+          echo "now = datetime.utcnow()" >> summary_bot.py
+          echo "yesterday = now - timedelta(days=1)" >> summary_bot.py
+          echo "since = yesterday.isoformat() + 'Z'" >> summary_bot.py
+          echo "" >> summary_bot.py
+          echo "repos = requests.get(f'https://api.github.com/orgs/{ORG}/repos?per_page=100', headers=headers).json()" >> summary_bot.py
+          echo "summary_lines = [f'## 🧾 Daily GitHub Issue Summary – {now.strftime(\"%Y-%m-%d\")}']" >> summary_bot.py
+          echo "" >> summary_bot.py
+          echo "for repo in repos:" >> summary_bot.py
+          echo "    repo_name = repo['name']" >> summary_bot.py
+          echo "    if repo.get('archived'):" >> summary_bot.py
+          echo "        continue" >> summary_bot.py
+          echo "" >> summary_bot.py
+          echo "    open_issues = requests.get(f'https://api.github.com/repos/{ORG}/{repo_name}/issues?state=open&per_page=100', headers=headers).json()" >> summary_bot.py
+          echo "    open_issues = [i for i in open_issues if 'pull_request' not in i]" >> summary_bot.py
+          echo "" >> summary_bot.py
+          echo "    closed_issues = requests.get(f'https://api.github.com/repos/{ORG}/{repo_name}/issues?state=closed&since={since}&per_page=100', headers=headers).json()" >> summary_bot.py
+          echo "    closed_issues = [i for i in closed_issues if 'pull_request' not in i]" >> summary_bot.py
+          echo "" >> summary_bot.py
+          echo "    if open_issues or closed_issues:" >> summary_bot.py
+          echo "        summary_lines.append(f'\\n### 📦 `{repo_name}`')" >> summary_bot.py
+          echo "        if open_issues:" >> summary_bot.py
+          echo "            summary_lines.append(f'🔓 **Open Issues** ({len(open_issues)}):')" >> summary_bot.py
+          echo "            for issue in open_issues:" >> summary_bot.py
+          echo "                summary_lines.append(f'- [#{issue[\"number\"]}]({issue[\"html_url\"]}) {issue[\"title\"]}')" >> summary_bot.py
+          echo "        if closed_issues:" >> summary_bot.py
+          echo "            summary_lines.append(f'✅ **Closed in last 24h** ({len(closed_issues)}):')" >> summary_bot.py
+          echo "            for issue in closed_issues:" >> summary_bot.py
+          echo "                summary_lines.append(f'- [#{issue[\"number\"]}]({issue[\"html_url\"]}) {issue[\"title\"]}')" >> summary_bot.py
+          echo "        summary_lines.append('')" >> summary_bot.py
+          echo "" >> summary_bot.py
+          echo "# Send to Discord" >> summary_bot.py
+          echo "requests.post(DISCORD_WEBHOOK, json={'content': '\\n'.join(summary_lines[:1900])})" >> summary_bot.py
 
-      - name: Run script
+      - name: Run summary bot
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
