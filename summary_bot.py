@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 GH_TOKEN = os.getenv('GH_TOKEN')
 DISCORD_WEBHOOK = os.getenv('DISCORD_WEBHOOK')
-ORG = 'Vinci'
+ORG = 'tryvinci'
 
 headers = {
     'Authorization': f'token {GH_TOKEN}',
