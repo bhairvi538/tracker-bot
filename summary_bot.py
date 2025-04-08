@@ -24,7 +24,7 @@ if repo_resp.status_code != 200:
 
 repos = repo_resp.json()
 summary_lines = [f'Daily GitHub Issue Summary – {now.strftime("%Y-%m-%d")}']
-has_any_issues = False  # Flag to track if there are any issues to report
+has_any_issues = False
 
 for repo in repos:
     repo_name = repo['name']
@@ -32,14 +32,18 @@ for repo in repos:
         continue
 
     # Fetch open issues
-    open_resp = requests.get(f'https://api.github.com/repos/{ORG}/{repo_name}/issues?state=open&per_page=100', headers=headers)
-    open_issues = open_resp.json()
-    open_issues = [i for i in open_issues if 'pull_request' not in i]
+    open_resp = requests.get(
+        f'https://api.github.com/repos/{ORG}/{repo_name}/issues?state=open&per_page=100',
+        headers=headers
+    )
+    open_issues = [i for i in open_resp.json() if 'pull_request' not in i]
 
-    # Fetch closed issues in the last 24 hours
-    closed_resp = requests.get(f'https://api.github.com/repos/{ORG}/{repo_name}/issues?state=closed&since={since}&per_page=100', headers=headers)
-    closed_issues = closed_resp.json()
-    closed_issues = [i for i in closed_issues if 'pull_request' not in i]
+    # Fetch recently closed issues (last 24 hours)
+    closed_resp = requests.get(
+        f'https://api.github.com/repos/{ORG}/{repo_name}/issues?state=closed&since={since}&per_page=100',
+        headers=headers
+    )
+    closed_issues = [i for i in closed_resp.json() if 'pull_request' not in i]
 
     if open_issues or closed_issues:
         has_any_issues = True
@@ -60,7 +64,7 @@ for repo in repos:
 if not has_any_issues:
     summary_lines.append('No open or recently closed issues to report today.')
 
-# Send message to Discord (limit 2000 characters)
+# Send message to Discord
 msg = '\n'.join(summary_lines)
 if len(msg) > 2000:
     msg = msg[:1997] + '...'
