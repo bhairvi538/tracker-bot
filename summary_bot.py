@@ -23,7 +23,8 @@ if repo_resp.status_code != 200:
     exit(1)
 
 repos = repo_resp.json()
-summary_lines = [f'## Daily GitHub Issue Summary – {now.strftime("%Y-%m-%d")}']
+summary_lines = [f'## 🧾 Daily GitHub Issue Summary – {now.strftime("%Y-%m-%d")}']
+has_any_issues = False  # ✅ flag to track if we found anything
 
 for repo in repos:
     repo_name = repo['name']
@@ -41,6 +42,7 @@ for repo in repos:
     closed_issues = [i for i in closed_issues if 'pull_request' not in i]
 
     if open_issues or closed_issues:
+        has_any_issues = True
         summary_lines.append(f'\n### `{repo_name}`')
 
         if open_issues:
@@ -55,6 +57,10 @@ for repo in repos:
 
         summary_lines.append('')
 
+# ✅ Add fallback message if no issues found
+if not has_any_issues:
+    summary_lines.append('✅ No open or closed issues to report today across any repositories.')
+
 # Send message to Discord (max 2000 characters)
 msg = '\n'.join(summary_lines)
 if len(msg) > 2000:
@@ -62,6 +68,6 @@ if len(msg) > 2000:
 
 res = requests.post(DISCORD_WEBHOOK, json={'content': msg})
 if res.status_code != 204:
-    print("Failed to send to Discord:", res.status_code, res.text)
+    print("❌ Failed to send to Discord:", res.status_code, res.text)
 else:
-    print("Sent summary to Discord.")
+    print("✅ Sent summary to Discord.")
