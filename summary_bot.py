@@ -19,11 +19,11 @@ since = yesterday.isoformat()
 repo_resp = requests.get(f'https://api.github.com/orgs/{ORG}/repos?per_page=100', headers=headers)
 
 if repo_resp.status_code != 200:
-    print("❌ Failed to fetch repos:", repo_resp.status_code, repo_resp.text)
+    print("Failed to fetch repos:", repo_resp.status_code, repo_resp.text)
     exit(1)
 
 repos = repo_resp.json()
-summary_lines = [f'## 🧾 Daily GitHub Issue Summary – {now.strftime("%Y-%m-%d")}']
+summary_lines = [f'## Daily GitHub Issue Summary – {now.strftime("%Y-%m-%d")}']
 
 for repo in repos:
     repo_name = repo['name']
@@ -41,15 +41,15 @@ for repo in repos:
     closed_issues = [i for i in closed_issues if 'pull_request' not in i]
 
     if open_issues or closed_issues:
-        summary_lines.append(f'\n### 📦 `{repo_name}`')
+        summary_lines.append(f'\n### `{repo_name}`')
 
         if open_issues:
-            summary_lines.append(f'🔓 **Open Issues** ({len(open_issues)}):')
+            summary_lines.append(f'**Open Issues** ({len(open_issues)}):')
             for issue in open_issues:
                 summary_lines.append(f'- [#{issue["number"]}]({issue["html_url"]}) {issue["title"]}')
 
         if closed_issues:
-            summary_lines.append(f'✅ **Closed in last 24h** ({len(closed_issues)}):')
+            summary_lines.append(f'**Closed in last 24h** ({len(closed_issues)}):')
             for issue in closed_issues:
                 summary_lines.append(f'- [#{issue["number"]}]({issue["html_url"]}) {issue["title"]}')
 
@@ -62,6 +62,6 @@ if len(msg) > 2000:
 
 res = requests.post(DISCORD_WEBHOOK, json={'content': msg})
 if res.status_code != 204:
-    print("❌ Failed to send to Discord:", res.status_code, res.text)
+    print("Failed to send to Discord:", res.status_code, res.text)
 else:
-    print("✅ Sent summary to Discord.")
+    print("Sent summary to Discord.")
