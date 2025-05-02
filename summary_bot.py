@@ -48,9 +48,9 @@ for repo in repos:
     # Only show repo section if either open or closed issues exist
     if open_issues or closed_issues:
         has_any_issues = True
-        summary_lines.append(f'\nRepository: {repo_name}')
+        summary_lines.append(f'\nRepository: {repo_name}')  # Keep leading newline for spacing between repos
 
-        # Open issues section (even if empty)
+        # Open issues section
         summary_lines.append(f'Open Issues ({len(open_issues)}):')
         if open_issues:
             for issue in open_issues:
@@ -58,7 +58,7 @@ for repo in repos:
         else:
             summary_lines.append('- None')
 
-        # Closed issues section (even if empty)
+        # Closed issues section
         summary_lines.append(f'Closed Issues (last 24h) ({len(closed_issues)}):')
         if closed_issues:
             for issue in closed_issues:
@@ -66,16 +66,24 @@ for repo in repos:
         else:
             summary_lines.append('- None')
 
-        summary_lines.append('')  # extra spacing between repos
-
 if not has_any_issues:
-    summary_lines.append('No open or recently closed issues to report today.')
+    summary_lines.append('\nNo open or recently closed issues to report today.')
 
-# Send message to Discord
+# Build the message
 msg = '\n'.join(summary_lines)
-if len(msg) > 2000:
-    msg = msg[:1997] + '...'
 
+# Truncate intelligently if over limit
+if len(msg) > 2000:
+    # Find the last newline before the 1997th character to leave room for '...'
+    cutoff = msg.rfind('\n', 0, 1997)
+    if cutoff == -1:
+        # No newline found, truncate hard
+        msg = msg[:1997] + '...'
+    else:
+        # Truncate at last newline and add ellipsis
+        msg = msg[:cutoff] + '\n...'
+
+# Send to Discord
 res = requests.post(DISCORD_WEBHOOK, json={'content': msg})
 if res.status_code != 204:
     print("Failed to send to Discord:", res.status_code, res.text)
